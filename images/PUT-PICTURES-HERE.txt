@@ -1,0 +1,3 @@
+Put your card and location picture files in this folder.
+Then set image:"images/your-file.png" on the card in index.html.
+See README.md, section 3.

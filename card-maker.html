@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Card Maker · Nexus Clash</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bangers&family=Rubik:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#dfe6f2; --panel:#fff; --panel-2:#eef2f9; --ink:#14142b; --muted:#566081; --line:rgba(20,20,43,.14); --outline:#14142b;
+  --red:#e8323c; --blue:#2f6bff; --blue-dk:#1a44b8; --yellow:#ffd23f; --good:#11994a; --bad:#d8283d;
+  --display:'Bangers', Impact, 'Arial Narrow', sans-serif; --ui:'Rubik', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){ --bg:#12132a; --panel:#1f2247; --panel-2:#282c58; --ink:#f1f2ff; --muted:#a3a8d4; --line:rgba(255,255,255,.12); --outline:#05050f; --good:#35d983; --bad:#ff5468; color-scheme:dark; } }
+:root[data-theme="dark"]{ --bg:#12132a; --panel:#1f2247; --panel-2:#282c58; --ink:#f1f2ff; --muted:#a3a8d4; --line:rgba(255,255,255,.12); --outline:#05050f; --good:#35d983; --bad:#ff5468; color-scheme:dark; }
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 var(--ui)}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+.wrap{max-width:980px;margin:0 auto;padding:calc(14px + env(safe-area-inset-top)) 14px 40px}
+h1{font:40px/1 var(--display);letter-spacing:1px;margin:0 0 4px}
+.lead{margin:0 0 14px;color:var(--muted);max-width:62ch}
+.seg{display:inline-flex;border:2.5px solid var(--outline);border-radius:12px;overflow:hidden;margin-bottom:14px}
+.seg button{border:0;background:var(--panel);padding:8px 18px;font-weight:700}
+.seg button.on{background:var(--blue);color:#fff}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:16px;align-items:start}
+@media (max-width:760px){ .grid{grid-template-columns:1fr} .side{position:static!important;order:-1} }
+.panel{background:var(--panel);border:2.5px solid var(--outline);border-radius:16px;padding:14px;box-shadow:0 3px 0 var(--outline);margin-bottom:14px}
+.panel h2{font:24px/1 var(--display);letter-spacing:.5px;margin:0 0 10px;font-weight:400}
+.row{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px}
+label{display:flex;flex-direction:column;gap:3px;font-size:13px;font-weight:700}
+label small{font-weight:500;color:var(--muted)}
+input[type=text],input[type=number],select,textarea{width:100%;border:2px solid var(--outline);border-radius:10px;background:var(--panel-2);padding:7px 9px;font-weight:500}
+input[type=color]{width:100%;height:38px;border:2px solid var(--outline);border-radius:10px;background:var(--panel-2);padding:2px}
+textarea{font:12px/1.4 ui-monospace,Menlo,Consolas,monospace;resize:vertical}
+.btn{border:2.5px solid var(--outline);border-radius:12px;padding:8px 14px;background:var(--panel);font-weight:700;box-shadow:0 3px 0 var(--outline)}
+.btn:active{transform:translateY(3px);box-shadow:none}
+.btn.primary{background:var(--red);color:#fff}
+.btn.blue{background:var(--blue);color:#fff}
+.btn:disabled{opacity:.45;pointer-events:none}
+.hint{font-size:12.5px;color:var(--muted);margin:6px 0 0}
+.side{position:sticky;top:12px}
+.preview{display:grid;place-items:center;padding:16px;border-radius:14px;background:radial-gradient(circle,var(--panel-2),transparent 70%)}
+.preview .card{--cw:170px}
+.abil-text{margin:10px 0 0;font-size:13px;text-align:center;min-height:2.8em}
+/* crop tool */
+.drop{border:2.5px dashed var(--line);border-radius:14px;padding:14px;text-align:center;background:var(--panel-2)}
+.drop.over{border-color:var(--blue);background:color-mix(in srgb,var(--blue) 12%,var(--panel-2))}
+.crop-area{display:none;gap:14px;align-items:flex-start;flex-wrap:wrap}
+.crop-area.on{display:flex}
+.frame{position:relative;width:240px;aspect-ratio:3/4;border:3px solid var(--outline);border-radius:14px;overflow:hidden;background:#000;touch-action:none;cursor:grab;flex:none}
+.frame.loc{width:280px;aspect-ratio:4/3}
+.frame:active{cursor:grabbing}
+.frame img{position:absolute;left:0;top:0;transform-origin:0 0;user-select:none;-webkit-user-drag:none;pointer-events:none;max-width:none}
+.frame .guide{position:absolute;left:0;right:0;bottom:0;height:22%;background:repeating-linear-gradient(135deg,rgba(0,0,0,.35) 0 6px,rgba(0,0,0,.2) 6px 12px);color:#fff;font-size:11px;font-weight:700;display:grid;place-items:center;pointer-events:none}
+.frame.loc .guide{display:none}
+.crop-ctl{flex:1;min-width:200px;display:flex;flex-direction:column;gap:10px}
+input[type=range]{width:100%;accent-color:var(--blue)}
+.out textarea{height:110px}
+.copied{color:var(--good);font-weight:700;font-size:13px;margin-left:8px;opacity:0;transition:opacity .2s}
+.copied.on{opacity:1}
+.steps{margin:6px 0 0;padding-left:20px;font-size:13.5px}
+.steps li{margin:3px 0}
+code{background:var(--panel-2);border-radius:5px;padding:0 4px;font-size:.92em}
+.hide{display:none!important}
+.warn{color:var(--bad);font-size:12.5px;font-weight:600;margin-top:4px}
+/* location preview */
+.locprev{position:relative;width:200px;height:120px;border-radius:12px;border:2.5px solid var(--outline);overflow:hidden;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:12px 8px;
+  background:linear-gradient(170deg,color-mix(in srgb,var(--c) 85%,#fff),color-mix(in srgb,var(--c) 45%,#000))}
+.locprev img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.locprev .shade{position:absolute;inset:0;background:linear-gradient(rgba(0,0,0,.1),rgba(0,0,0,.55));z-index:1;display:none}
+.locprev.art .shade{display:block}
+.locprev .ic{position:absolute;right:-4px;bottom:-6px;font-size:50px;opacity:.28}
+.locprev.art .ic{display:none}
+.locprev b{position:relative;z-index:2;font:21px/1 var(--display);letter-spacing:.4px;-webkit-text-stroke:.8px var(--outline);paint-order:stroke;font-weight:400}
+.locprev span{position:relative;z-index:2;margin-top:4px;font-size:11px;font-weight:600;line-height:1.2;text-shadow:0 1px 0 rgba(0,0,0,.5)}
+/* ============ CARD ============ */
+.card{position:relative;width:var(--cw,90px);aspect-ratio:3/4;flex:none;container-type:inline-size;transform-origin:0 0}
+#scr-match .card,.card.ghost{touch-action:none}
+.card-inner{position:absolute;inset:0;transform-style:preserve-3d;transition:transform .5s cubic-bezier(.3,1.35,.5,1)}
+.card.facedown .card-inner{transform:rotateY(180deg)}
+.face{position:absolute;inset:0;border-radius:8cqw;backface-visibility:hidden;-webkit-backface-visibility:hidden;overflow:hidden}
+.front{background:linear-gradient(160deg,color-mix(in srgb,var(--c) 86%,#fff),color-mix(in srgb,var(--c) 48%,#000));
+  border:3cqw solid var(--outline);box-shadow:inset 0 0 0 2.2cqw var(--rc)}
+.front::before{content:"";position:absolute;inset:0;background:radial-gradient(rgba(255,255,255,.22) 1.1cqw,transparent 1.3cqw) 0 0/7cqw 7cqw;
+  -webkit-mask:linear-gradient(200deg,#000,transparent 70%);mask:linear-gradient(200deg,#000,transparent 70%)}
+.front::after{content:"";position:absolute;left:-10%;right:-10%;top:52%;height:40%;background:rgba(0,0,0,.18);transform:skewY(-12deg)}
+.c-icon{position:absolute;left:50%;top:45%;transform:translate(-50%,-50%);font-size:46cqw;line-height:1;z-index:1;filter:drop-shadow(1.5cqw 2.5cqw 0 rgba(0,0,0,.45))}
+.c-art{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 50%;pointer-events:none;-webkit-user-drag:none}
+.has-art .c-icon{display:none}
+.front.has-art::before{display:none}
+.front.has-art::after{left:0;right:0;top:auto;bottom:0;height:45%;transform:none;background:linear-gradient(transparent,rgba(0,0,0,.45))}
+.c-cost,.c-pow{position:absolute;top:3cqw;z-index:2;display:grid;place-items:center;width:29cqw;height:29cqw;color:#fff;
+  font:21cqw/1 var(--display);-webkit-text-stroke:.6cqw var(--outline);paint-order:stroke}
+.c-cost{left:3cqw;border-radius:50%;background:radial-gradient(circle at 35% 30%,#7fb0ff,var(--blue) 55%,var(--blue-dk));border:2cqw solid var(--outline)}
+.c-pow{right:3cqw;background:var(--outline);clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%)}
+.c-pow::before{content:"";position:absolute;inset:2.4cqw;background:linear-gradient(#ffb547,#e2560b);clip-path:inherit;z-index:-1}
+.c-pow span{position:relative}
+.card.up .c-pow::before{background:linear-gradient(#6ff0a4,#11994a)}
+.card.down .c-pow::before{background:linear-gradient(#ff8a96,#c41b30)}
+.c-name{position:absolute;left:0;right:0;bottom:0;z-index:2;padding:2cqw 4cqw 4cqw;background:var(--outline);color:#fff;
+  font:13.5cqw/1.05 var(--display);letter-spacing:.3px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.c-abil{position:absolute;right:4cqw;bottom:21cqw;z-index:2;min-width:17cqw;height:17cqw;padding:0 3cqw;border-radius:9cqw;background:var(--yellow);
+  color:#14142b;border:1.6cqw solid var(--outline);font:700 10cqw/14cqw var(--ui);text-align:center}
+.back{transform:rotateY(180deg);background:repeating-linear-gradient(135deg,#2a2466 0 7cqw,#352d85 7cqw 14cqw);border:3cqw solid var(--outline);
+  box-shadow:inset 0 0 0 2.2cqw #8c7cff;display:grid;place-items:center}
+.back-logo{font:40cqw/1 var(--display);color:var(--yellow);-webkit-text-stroke:1cqw var(--outline);paint-order:stroke;transform:rotate(-8deg)}
+.card.mini .c-name,.card.mini .c-cost,.card.mini .c-abil{display:none}
+.card.mini .c-icon{font-size:56cqw;top:56%}
+.card.mini .c-pow{width:40cqw;height:40cqw;font-size:30cqw;top:2cqw;right:2cqw}
+.card.compact .c-name{display:none}
+.card.compact .c-icon{top:55%}
+
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Card Maker</h1>
+  <p class="lead">Design a card or location, add your own picture, and copy the finished line into the <code>CARDS</code> or <code>LOCATIONS</code> list at the top of <code>index.html</code>. Pictures are cropped to fit exactly and stored inside the line, so there are no extra files to keep track of.</p>
+  <div class="seg" role="tablist"><button class="on" data-kind="card">Card</button><button data-kind="loc">Location</button></div>
+
+  <div class="grid">
+    <div>
+      <div class="panel">
+        <h2>Details</h2>
+        <div class="row">
+          <label>Name<input type="text" id="f-name" value="Fire Hawk" maxlength="24"></label>
+          <label>Id <small>code name, must be unique</small><input type="text" id="f-id" value="firehawk"></label>
+        </div>
+        <div class="row cardonly" style="margin-top:10px">
+          <label>Cost<input type="number" id="f-cost" min="0" max="6" value="3"></label>
+          <label>Power<input type="number" id="f-power" value="4"></label>
+          <label>Rarity<select id="f-rarity"><option>common</option><option selected>rare</option><option>epic</option><option>legendary</option></select></label>
+        </div>
+        <div class="row" style="margin-top:10px">
+          <label>Emoji <small>shown if there's no picture</small><input type="text" id="f-emoji" value="🦅"></label>
+          <label>Color<input type="color" id="f-color" value="#e8323c"></label>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2 id="effect-title">Ability</h2>
+        <div class="row">
+          <label><span id="effect-label">Effect</span><select id="f-effect"></select></label>
+          <label id="amount-wrap">Amount<input type="number" id="f-amount" value="2"></label>
+          <label id="ref-wrap" class="hide"><span id="ref-label">Token id</span><input type="text" id="f-ref" value="illusion"></label>
+        </div>
+        <p class="hint" id="effect-help"></p>
+        <label style="margin-top:10px">Custom wording <small>optional, replaces the automatic text</small><input type="text" id="f-text" placeholder="Leave empty to use the automatic text"></label>
+        <label class="cardonly" style="margin-top:10px;flex-direction:row;align-items:center;gap:8px"><input type="checkbox" id="f-token"> Token (only made by other cards; never in packs)</label>
+      </div>
+
+      <div class="panel">
+        <h2>Picture</h2>
+        <div class="drop" id="drop">
+          <p style="margin:0 0 8px;font-weight:600">Drop an image here, or</p>
+          <label class="btn blue" style="display:inline-block;cursor:pointer">Choose image<input type="file" id="file" accept="image/*" hidden></label>
+          <p class="hint">PNG, JPG, WebP or GIF. Any size works.</p>
+        </div>
+        <div class="crop-area" id="crop-area" style="margin-top:12px">
+          <div class="frame" id="frame"><img id="crop-img" alt="Your picture, drag to position"><div class="guide">name bar covers this strip</div></div>
+          <div class="crop-ctl">
+            <p style="margin:0;font-weight:600">Drag the picture to position it. Pinch or use the slider to zoom.</p>
+            <label>Zoom<input type="range" id="zoom" min="1" max="4" step="0.01" value="1"></label>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <button class="btn" id="fit">Reset</button>
+              <button class="btn" id="remove">Remove picture</button>
+            </div>
+            <label>Save the picture as
+              <select id="img-mode">
+                <option value="embed">Inside the code line (easiest)</option>
+                <option value="path">A file in the images folder</option>
+              </select>
+            </label>
+            <div id="path-wrap" class="hide">
+              <label>File name<input type="text" id="f-path" value="images/firehawk.jpg"></label>
+              <p class="hint">Put an image file with this exact name in the <code>images</code> folder next to <code>index.html</code>. The game crops it to fit automatically. This option doesn't work on the published claude.ai link; use "Inside the code line" for that.</p>
+            </div>
+            <p class="hint" id="img-size"></p>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel out">
+        <h2>Your code</h2>
+        <textarea id="out" readonly aria-label="Generated code"></textarea>
+        <div style="margin-top:8px;display:flex;align-items:center;flex-wrap:wrap;gap:8px">
+          <button class="btn primary" id="copy">Copy code</button><span class="copied" id="copied">Copied</span>
+        </div>
+        <ol class="steps" id="howto"></ol>
+      </div>
+
+      <div class="panel">
+        <h2>Edit an existing one</h2>
+        <p class="hint" style="margin-top:0">Paste a line from <code>index.html</code> (from <code>{</code> to <code>}</code>) to load it here.</p>
+        <textarea id="paste" style="height:70px" placeholder='{ id:"spark", name:"Spark Runner", cost:1, power:2, rarity:"common", emoji:"⚡", color:"#d5b534", image:"" },'></textarea>
+        <button class="btn" id="load" style="margin-top:8px">Load it</button>
+        <p class="warn" id="load-err"></p>
+      </div>
+    </div>
+
+    <div class="side">
+      <div class="panel">
+        <h2>Preview</h2>
+        <div class="preview" id="preview"></div>
+        <p class="abil-text" id="abil-text"></p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const RARITY_COLORS={common:'#b4bdd0',rare:'#4aa8ff',epic:'#c07bff',legendary:'#ffc53d'};
+// Same lists as the game (keep in sync with index.html)
+const EFFECTS={
+  none:{label:'No ability'},
+  buffAlliesHere:{on:'On Reveal',amount:true,text:n=>`Give your other cards here +${n} Power.`},
+  debuffEnemiesHere:{on:'On Reveal',amount:true,text:n=>`Give enemy cards here −${n} Power.`},
+  draw:{on:'On Reveal',amount:true,text:n=>`Draw ${n===1?'a card':n+' cards'}.`},
+  energyNext:{on:'On Reveal',amount:true,text:n=>`Get +${n} Energy next turn.`},
+  buffHand:{on:'On Reveal',amount:true,text:n=>`Give the cards in your hand +${n} Power.`},
+  summon:{on:'On Reveal',needs:'token',text:(n,r)=>`Put a ${r||'token'} at another location.`},
+  addCard:{on:'On Reveal',needs:'card',text:(n,r)=>`Add a ${r||'card'} to your hand.`},
+  ifAlone:{on:'On Reveal',amount:true,text:n=>`If this is your only card here, +${n} Power.`},
+  perAlly:{on:'On Reveal',amount:true,text:n=>`+${n} Power for each other card you have here.`},
+  finalTurn:{on:'On Reveal',amount:true,text:n=>`If it's the final turn, +${n} Power.`},
+  destroyWeakest:{on:'On Reveal',text:()=>`Destroy the enemy card here with the least Power.`},
+  buffRandomAlly:{on:'On Reveal',amount:true,text:n=>`Give another random card of yours +${n} Power.`},
+  auraAlliesHere:{on:'Ongoing',amount:true,text:n=>`Your other cards here have +${n} Power.`},
+  auraEnemiesHere:{on:'Ongoing',amount:true,text:n=>`Enemy cards here have −${n} Power.`},
+  auraAlliesEverywhere:{on:'Ongoing',amount:true,text:n=>`Your other cards everywhere have +${n} Power.`},
+  locationBonus:{on:'Ongoing',amount:true,text:n=>`+${n} Power at this location.`},
+  grow:{on:'End of turn',amount:true,text:n=>`This gains +${n} Power.`},
+};
+const LOC_EFFECTS={
+  none:{text:()=>'No effect.'},
+  playBonus:{amount:true,text:n=>n>=0?`Cards played here get +${n} Power.`:`Cards played here get −${-n} Power.`},
+  capacity:{amount:true,text:n=>`Only ${n} card${n===1?'':'s'} per side fit here.`},
+  costReduction:{amount:true,text:n=>`Cards cost ${n} less to play here.`},
+  closeAfter:{amount:true,text:n=>`After turn ${n}, cards can't be played here.`},
+  doubleReveal:{text:()=>'On Reveal abilities here happen twice.'},
+  bigBonus:{amount:true,text:n=>`Cards that cost 5+ have +${n} Power here.`},
+  smallOnly:{amount:true,text:n=>`Only cards that cost ${n} or less can be played here.`},
+  recruit:{text:()=>'Each turn, both players get a Recruit.'},
+  drawOnPlay:{text:()=>'When a card is played here, its owner draws a card.'},
+  growHere:{amount:true,text:n=>`End of turn: cards here get +${n} Power.`},
+  energyWinner:{amount:true,text:n=>`Each turn, whoever is winning here gets +${n} Energy.`},
+  underdog:{amount:true,text:n=>`The side with fewer cards here gets +${n} Power.`},
+};
+
+let kind='card';
+const img={ el:null, w:0, h:0, x:0, y:0, s:1, min:1, data:'', alpha:false };
+const FRAME={ card:{w:360,h:480}, loc:{w:480,h:360} };
+
+function fillEffects(){
+  const sel=$('#f-effect'), prev=sel.value;
+  sel.innerHTML='';
+  if(kind==='card'){
+    const groups={};
+    Object.entries(EFFECTS).forEach(([k,v])=>{ const g=v.on||'None'; (groups[g]=groups[g]||[]).push(k); });
+    Object.entries(groups).forEach(([g,list])=>{
+      const og=document.createElement('optgroup'); og.label=g;
+      list.forEach(k=>{ const o=document.createElement('option'); o.value=k; o.textContent=k==='none'?'No ability':k; og.appendChild(o); });
+      sel.appendChild(og);
+    });
+    sel.value = EFFECTS[prev] ? prev : 'buffAlliesHere';
+  } else {
+    Object.keys(LOC_EFFECTS).forEach(k=>{ const o=document.createElement('option'); o.value=k; o.textContent=k; sel.appendChild(o); });
+    sel.value = LOC_EFFECTS[prev] ? prev : 'playBonus';
+  }
+}
+function slug(s){ return s.toLowerCase().normalize('NFKD').replace(/[^\w\s-]/g,'').trim().replace(/[\s-]+/g,'').slice(0,24) || 'newcard'; }
+let idTouched=false;
+$('#f-id').addEventListener('input',()=>{ idTouched=true; render(); });
+$('#f-name').addEventListener('input',()=>{ if(!idTouched){ $('#f-id').value=slug($('#f-name').value); syncPath(); } render(); });
+document.querySelectorAll('input,select,textarea').forEach(e=>{ if(!['f-id','f-name','paste','file','out'].includes(e.id)) e.addEventListener('input',render); });
+function syncPath(){ if(!$('#f-path').dataset.touched) $('#f-path').value=`images/${$('#f-id').value||'card'}.${img.alpha?'png':'jpg'}`; }
+$('#f-path').addEventListener('input',()=>{ $('#f-path').dataset.touched=1; });
+$('#img-mode').addEventListener('change',()=>{ $('#path-wrap').classList.toggle('hide',$('#img-mode').value!=='path'); render(); });
+
+document.querySelectorAll('.seg button').forEach(b=>b.addEventListener('click',()=>{
+  kind=b.dataset.kind;
+  document.querySelectorAll('.seg button').forEach(x=>x.classList.toggle('on',x===b));
+  document.querySelectorAll('.cardonly').forEach(x=>x.classList.toggle('hide',kind!=='card'));
+  $('#frame').classList.toggle('loc',kind==='loc');
+  $('#effect-title').textContent = kind==='card' ? 'Ability' : 'Effect';
+  if(kind==='loc' && !idTouched && $('#f-name').value==='Fire Hawk'){ $('#f-name').value='Lava Falls'; $('#f-id').value='lavafalls'; $('#f-emoji').value='🌋'; }
+  fillEffects();
+  if(img.el) fitImage();
+  render();
+}));
+
+function values(){
+  const eff=$('#f-effect').value;
+  const E = kind==='card' ? EFFECTS[eff] : LOC_EFFECTS[eff];
+  return { name:$('#f-name').value.trim()||'Untitled', id:$('#f-id').value.trim(), cost:Math.max(0,Math.min(6,parseInt($('#f-cost').value)||0)),
+    power:parseInt($('#f-power').value)||0, rarity:$('#f-rarity').value, emoji:$('#f-emoji').value.trim()||'❔', color:$('#f-color').value,
+    effect:eff, E, amount:parseInt($('#f-amount').value)||0, ref:$('#f-ref').value.trim(), text:$('#f-text').value.trim(), token:$('#f-token').checked };
+}
+const q=s=>JSON.stringify(s);
+function imageValue(){
+  if(!img.el) return '';
+  return $('#img-mode').value==='path' ? $('#f-path').value.trim() : img.data;
+}
+function render(){
+  const v=values();
+  // field visibility
+  $('#amount-wrap').classList.toggle('hide', !(v.E && v.E.amount));
+  $('#ref-wrap').classList.toggle('hide', !(v.E && v.E.needs));
+  if(v.E && v.E.needs) $('#ref-label').textContent = v.E.needs==='token' ? 'Token id (a card with token:true)' : 'Card id to add';
+  const helps = { summon:'Needs the id of another card in your list. Tokens usually have token:true.', addCard:'Needs the id of another card in your list.', playBonus:'Use a minus number (like -1) for a penalty.', capacity:'1 to 4 cards per side.', closeAfter:'Example: 4 means cards can be played here on turns 1–4, then it closes for turns 5 and 6.' };
+  $('#effect-help').textContent = helps[v.effect] || '';
+  // ability text
+  let label='', txt='';
+  if(kind==='card'){
+    if(v.E && v.E.on){ label=v.E.on; txt = v.text || v.E.text(v.amount, v.ref); }
+    else if(v.text) txt=v.text;
+    else txt = v.token ? 'A token created by other cards.' : 'No ability. Just raw power.';
+  } else txt = v.text || v.E.text(v.amount);
+  $('#abil-text').innerHTML = (label?`<b>${label}:</b> `:'') + esc(txt);
+  // preview
+  const pv=$('#preview'); pv.innerHTML='';
+  const src=img.el ? img.data : '';
+  if(kind==='card'){
+    const c=document.createElement('div'); c.className='card';
+    c.style.setProperty('--c',v.color); c.style.setProperty('--rc',RARITY_COLORS[v.rarity]);
+    c.innerHTML=`<div class="card-inner"><div class="face front${src?' has-art':''}">${src?`<img class="c-art" alt="">`:''}<div class="c-icon">${esc(v.emoji)}</div><div class="c-cost">${v.cost}</div><div class="c-pow"><span>${v.power}</span></div>${(v.E&&v.E.on)||v.text?`<div class="c-abil">✦</div>`:''}<div class="c-name">${esc(v.name)}</div></div></div>`;
+    if(src) c.querySelector('img').src=src;
+    pv.appendChild(c);
+  } else {
+    const l=document.createElement('div'); l.className='locprev'+(src?' art':''); l.style.setProperty('--c',v.color);
+    l.innerHTML=`${src?'<img alt="">':''}<div class="shade"></div><div class="ic">${esc(v.emoji)}</div><b>${esc(v.name)}</b><span>${esc(txt)}</span>`;
+    if(src) l.querySelector('img').src=src;
+    pv.appendChild(l);
+  }
+  // code
+  const parts=[`id:${q(v.id||slug(v.name))}`, `name:${q(v.name)}`];
+  if(kind==='card') parts.push(`cost:${v.cost}`, `power:${v.power}`, `rarity:${q(v.rarity)}`);
+  parts.push(`emoji:${q(v.emoji)}`, `color:${q(v.color)}`, `image:${q(imageValue())}`);
+  if(kind==='card'){
+    if(v.E && v.E.on){
+      const ab=[`effect:${q(v.effect)}`];
+      if(v.E.amount) ab.push(`amount:${v.amount}`);
+      if(v.E.needs) ab.push(`${v.E.needs}:${q(v.ref)}`);
+      parts.push(`ability:{ ${ab.join(', ')} }`);
+    }
+    if(v.token) parts.push('token:true');
+  } else {
+    parts.push(`effect:${q(v.effect)}`);
+    if(v.E.amount) parts.push(`amount:${v.amount}`);
+  }
+  if(v.text) parts.push(`text:${q(v.text)}`);
+  $('#out').value = `  { ${parts.join(', ')} },`;
+  const list = kind==='card' ? 'CARDS' : 'LOCATIONS';
+  $('#howto').innerHTML = `<li>Press <b>Copy code</b>.</li><li>Open <code>index.html</code> in a text editor and find <code>const ${list} = [</code> near the top.</li><li>Paste the line on a new line inside the list (before the <code>];</code>).</li>`+
+    (kind==='card' ? `<li>To collect it, open packs in the game, or add its id to <code>STARTER_CARDS</code>.</li>` : `<li>New locations show up at random in matches.</li>`)+
+    (img.el && $('#img-mode').value==='path' ? `<li>Save your picture as <code>${esc($('#f-path').value)}</code> next to <code>index.html</code>.</li>` : '')+
+    `<li>Save the file and refresh the game.</li>`;
+}
+
+/* ---------- image crop ---------- */
+function loadDataUrl(url, type){
+  const im=new Image();
+  im.onload=()=>{ img.el=im; img.w=im.naturalWidth; img.h=im.naturalHeight; img.alpha=/png|webp|gif/.test(type) && hasAlpha(im);
+    $('#crop-img').src=url; $('#crop-area').classList.add('on'); fitImage(); syncPath(); };
+  im.onerror=()=>{ $('#img-size').textContent='That picture couldn\u2019t be opened. Try a PNG or JPG.'; };
+  im.src=url;
+}
+function loadFile(file){
+  if(!file || !file.type.startsWith('image/')) return;
+  const r=new FileReader();
+  r.onload=()=>loadDataUrl(r.result, file.type);
+  r.readAsDataURL(file);
+}
+function hasAlpha(im){
+  const c=document.createElement('canvas'); const k=Math.min(1,64/Math.max(im.naturalWidth,im.naturalHeight));
+  c.width=Math.max(1,Math.round(im.naturalWidth*k)); c.height=Math.max(1,Math.round(im.naturalHeight*k));
+  const x=c.getContext('2d'); x.drawImage(im,0,0,c.width,c.height);
+  const d=x.getImageData(0,0,c.width,c.height).data;
+  for(let i=3;i<d.length;i+=4) if(d[i]<250) return true;
+  return false;
+}
+$('#file').addEventListener('change',e=>loadFile(e.target.files[0]));
+const drop=$('#drop');
+['dragenter','dragover'].forEach(t=>drop.addEventListener(t,e=>{ e.preventDefault(); drop.classList.add('over'); }));
+['dragleave','drop'].forEach(t=>drop.addEventListener(t,e=>{ e.preventDefault(); drop.classList.remove('over'); }));
+drop.addEventListener('drop',e=>loadFile(e.dataTransfer.files[0]));
+function frameSize(){ const r=$('#frame').getBoundingClientRect(); return {w:r.width-6, h:r.height-6}; }
+function fitImage(){
+  const f=frameSize();
+  img.min=Math.max(f.w/img.w, f.h/img.h);
+  img.s=img.min; $('#zoom').value=1;
+  img.x=(f.w-img.w*img.s)/2; img.y=(f.h-img.h*img.s)/2;
+  applyCrop();
+}
+function clamp(){
+  const f=frameSize();
+  img.x=Math.min(0,Math.max(f.w-img.w*img.s,img.x));
+  img.y=Math.min(0,Math.max(f.h-img.h*img.s,img.y));
+}
+let exportTimer=0;
+function applyCrop(){
+  clamp();
+  $('#crop-img').style.transform=`translate(${img.x}px,${img.y}px) scale(${img.s})`;
+  clearTimeout(exportTimer); exportTimer=setTimeout(exportImage,60);
+}
+function exportImage(){
+  if(!img.el) return;
+  const f=frameSize(), out=FRAME[kind];
+  const c=document.createElement('canvas'); c.width=out.w; c.height=out.h;
+  const x=c.getContext('2d'); x.imageSmoothingQuality='high';
+  const sx=-img.x/img.s, sy=-img.y/img.s, sw=f.w/img.s, sh=f.h/img.s;
+  x.drawImage(img.el, sx, sy, sw, sh, 0, 0, out.w, out.h);
+  img.data = img.alpha ? c.toDataURL('image/png') : c.toDataURL('image/jpeg', 0.84);
+  $('#img-size').textContent = `Picture size in the code: about ${Math.round(img.data.length/1024)} KB (${out.w}×${out.h}, ${img.alpha?'PNG with transparency':'JPEG'}).`;
+  render();
+}
+function zoomTo(s, cx, cy){
+  const f=frameSize();
+  s=Math.max(img.min, Math.min(img.min*4, s));
+  if(cx==null){ cx=f.w/2; cy=f.h/2; }
+  img.x = cx - (cx-img.x)*(s/img.s); img.y = cy - (cy-img.y)*(s/img.s);
+  img.s=s; $('#zoom').value=(s/img.min).toFixed(2); applyCrop();
+}
+$('#zoom').addEventListener('input',e=>zoomTo(img.min*parseFloat(e.target.value)));
+$('#fit').addEventListener('click',fitImage);
+$('#remove').addEventListener('click',()=>{ img.el=null; img.data=''; $('#crop-area').classList.remove('on'); $('#file').value=''; $('#img-size').textContent=''; render(); });
+const pts=new Map(); let pinch=null;
+const frame=$('#frame');
+frame.addEventListener('pointerdown',e=>{ frame.setPointerCapture(e.pointerId); pts.set(e.pointerId,{x:e.clientX,y:e.clientY}); if(pts.size===2){ const [a,b]=[...pts.values()]; pinch={d:Math.hypot(a.x-b.x,a.y-b.y), s:img.s}; } });
+frame.addEventListener('pointermove',e=>{
+  if(!pts.has(e.pointerId) || !img.el) return;
+  const p=pts.get(e.pointerId), dx=e.clientX-p.x, dy=e.clientY-p.y;
+  pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(pts.size===2 && pinch){
+    const [a,b]=[...pts.values()]; const r=frame.getBoundingClientRect();
+    zoomTo(pinch.s*Math.hypot(a.x-b.x,a.y-b.y)/pinch.d, (a.x+b.x)/2-r.left-3, (a.y+b.y)/2-r.top-3);
+  } else if(pts.size===1){ img.x+=dx; img.y+=dy; applyCrop(); }
+});
+['pointerup','pointercancel'].forEach(t=>frame.addEventListener(t,e=>{ pts.delete(e.pointerId); if(pts.size<2) pinch=null; }));
+frame.addEventListener('wheel',e=>{ if(!img.el) return; e.preventDefault(); const r=frame.getBoundingClientRect(); zoomTo(img.s*(e.deltaY<0?1.08:1/1.08), e.clientX-r.left-3, e.clientY-r.top-3); },{passive:false});
+window.addEventListener('resize',()=>{ if(img.el) fitImage(); });
+
+/* ---------- copy ---------- */
+$('#copy').addEventListener('click',async()=>{
+  const t=$('#out'); let ok=false;
+  try{ await navigator.clipboard.writeText(t.value); ok=true; }catch(_){}
+  if(!ok){ t.focus(); t.select(); try{ ok=document.execCommand('copy'); }catch(_){} }
+  const c=$('#copied'); c.textContent = ok ? 'Copied' : 'Select the text above and copy it';
+  c.classList.add('on'); setTimeout(()=>c.classList.remove('on'), 2200);
+});
+
+/* ---------- load existing line ---------- */
+$('#load').addEventListener('click',()=>{
+  $('#load-err').textContent='';
+  let src=$('#paste').value.trim().replace(/,\s*$/,'');
+  let o;
+  try{ o=Function('"use strict";return ('+src+')')(); }catch(e){ $('#load-err').textContent='That doesn\u2019t look like a complete line. Copy everything from { to }.'; return; }
+  if(!o || typeof o!=='object'){ $('#load-err').textContent='That doesn\u2019t look like a card or location.'; return; }
+  const isLoc = o.cost==null && o.power==null && (o.effect!=null || o.type!=null) && !o.ability;
+  document.querySelector(`.seg button[data-kind="${isLoc?'loc':'card'}"]`).click();
+  $('#f-name').value=o.name||''; $('#f-id').value=o.id||''; idTouched=true;
+  if(o.cost!=null) $('#f-cost').value=o.cost;
+  if(o.power!=null) $('#f-power').value=o.power;
+  if(o.rarity) $('#f-rarity').value=o.rarity;
+  $('#f-emoji').value=o.emoji||o.icon||'';
+  if(typeof o.color==='string' && /^#[0-9a-f]{6}$/i.test(o.color)) $('#f-color').value=o.color;
+  $('#f-text').value=o.text||'';
+  $('#f-token').checked=!!o.token;
+  if(isLoc){ $('#f-effect').value=o.effect||o.type||'none'; if(o.amount!=null) $('#f-amount').value=o.amount; }
+  else if(o.ability){ $('#f-effect').value=o.ability.effect||o.ability.type; if(o.ability.amount!=null) $('#f-amount').value=o.ability.amount; $('#f-ref').value=o.ability.token||o.ability.card||''; }
+  else $('#f-effect').value='none';
+  if(o.image && /^data:image\//.test(o.image)){
+    loadDataUrl(o.image, (o.image.match(/^data:([^;,]+)/)||[])[1]||'image/jpeg');
+  } else if(o.image){ $('#img-mode').value='path'; $('#path-wrap').classList.remove('hide'); $('#f-path').value=o.image; $('#f-path').dataset.touched=1;
+    $('#load-err').textContent='This one uses an image file, so it isn\u2019t shown here. Choose the picture above to re-crop it.'; }
+  render();
+});
+
+fillEffects(); render();
+</script>
+</body>
+</html>
